@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRACKER GYM AI - WITH DYNAMIC API KEY</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #121212; color: #ffffff; margin: 0; padding: 15px; }
+        .container { max-width: 500px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h1, h2, h3 { text-align: center; color: #00ff88; margin-top: 0; }
+        .section { background: #2a2a2a; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid #00ff88; }
+        label { display: block; margin: 10px 0 5px; font-size: 0.9em; color: #bbb; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: #fff; border-radius: 8px; }
+        input:focus, select:focus { border-color: #00ff88; outline: none; }
+        
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .target-box { background: #00ff88; color: #121212; padding: 10px; border-radius: 8px; margin-top: 10px; font-weight: bold; text-align: center; display: grid; grid-template-columns: 1fr 1fr; }
+        
+        .btn { width: 100%; padding: 12px; background: #00ff88; color: #121212; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn:hover { background: #00cc6e; }
+        .btn-secondary { background: #444; color: #fff; margin-top: 5px; }
+        .btn-secondary:hover { background: #555; }
+        .btn-danger { background: #ff5555; color: #fff; margin-top: 10px; font-size: 0.9em; padding: 8px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-danger:hover { background: #cc3333; }
+        
+        /* List Makanan */
+        .food-item-slot { display: flex; gap: 15px; background: #333; padding: 12px; border-radius: 8px; align-items: center; margin-top: 10px; border-bottom: 2px solid #444; position: relative; }
+        .image-preview-slot { width: 80px; height: 80px; background: #222; border-radius: 8px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .image-preview-slot img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .macro-info-right { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; padding-right: 25px; }
+        .macro-item { display: flex; justify-content: space-between; font-size: 0.9em; }
+        .macro-item span { color: #aaa; }
+        .macro-item strong { color: #00ff88; }
+        .food-title { font-weight: bold; color: #fff; margin-bottom: 3px; font-size: 0.95em; }
+        
+        .btn-delete-item { position: absolute; right: 12px; top: 12px; background: none; border: none; color: #ff5555; font-size: 1.2em; cursor: pointer; padding: 0; }
+        .btn-delete-item:hover { color: #ff8888; transform: scale(1.1); }
+        
+        /* Kalender */
+        .calendar-header-title { font-weight: bold; text-align: center; margin-bottom: 15px; color: #00ff88; font-size: 1.2em; text-transform: uppercase; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; }
+        .calendar-grid .day-name { font-weight: bold; color: #888; font-size: 0.85em; padding-bottom: 5px; }
+        .day { background: #333; padding: 12px 0; border-radius: 8px; cursor: pointer; font-size: 0.95em; transition: 0.2s; color: #fff; }
+        .day:hover { background: #00ff88; color: #121212; font-weight: bold; }
+        .day.today { border: 2px solid #00ff88; background: #2a3a2a; color: #00ff88; font-weight: bold; }
+        .day.has-data { border-left: 4px solid #ffaa00; background: #2b2e2b; }
+        
+        .review-box { background: #22332a; border: 1px dashed #00ff88; padding: 12px; border-radius: 8px; margin-top: 15px; display: none; }
+        .correction-box { background: #332222; border: 1px solid #ff5555; padding: 10px; border-radius: 8px; margin-top: 15px; }
+        .page { display: none; }
+        .active-page { display: block; }
+        .nav-box { display: flex; gap: 10px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div id="page1" class="page active-page">
+        <h1>TRACKER GYM AI</h1>
+        
+        <div class="section" style="border-left-color: #ff5555; background: #251f1f;">
+            <label for="api-key-input" style="color: #ff8888; font-weight: bold;">🔑 Masukkan API Key Gemini Anda:</label>
+            <input type="text" id="api-key-input" placeholder="Tempel kode API Gemini di sini..." oninput="simpanApiKeyKeMemory()">
+            <span style="font-size: 0.75em; color: #888; display: block; margin-top: 4px;">*Kunci akan disimpan otomatis di memori browser Anda.</span>
+        </div>
+        
+        <div class="section" style="border-left-color: #ffaa00; text-align: center;">
+            <strong>📅 Hari Ini:</strong> <span id="current-date" style="color: #00ff88;"></span>
+        </div>
+
+        <div class="section">
+            <h3>Langkah 1: Fisik & Target Program</h3>
+            <div class="grid-3">
+                <div>
+                    <label>Tinggi (cm)</label>
+                    <input type="number" id="height" value="170">
+                </div>
+                <div>
+                    <label>Berat (kg)</label>
+                    <input type="number" id="weight" value="65">
+                </div>
+                <div>
+                    <label>Target (kg)</label>
+                    <input type="number" id="target-weight" value="70">
+                </div>
+            </div>
+            
+            <label for="goal-type">Opsi Program:</label>
+            <select id="goal-type">
+                <option value="bulking">⚡ Bulking (Naik Massa Otot)</option>
+                <option value="cutting">✂️ Cutting (Pangkas Lemak)</option>
+                <option value="maintenance">⚖️ Calorie Maintenance</option>
+            </select>
+
+            <button class="btn" type="button" onclick="hitungKebutuhanDenganAI()" style="background: #00ff88; margin-top: 15px;">🤖 Hitung Target Harian Lewat AI</button>
+
+            <div class="target-box">
+                <div>🔥 Target Kalori: <br><span id="target-cal">--</span> kcal</div>
+                <div>💪 Target Protein: <br><span id="target-prot">--</span> g</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Langkah 2: Smart AI Analisis Makanan</h3>
+            
+            <div style="background:#222; padding:15px; border-radius:8px; text-align:center;">
+                <button class="btn btn-secondary" type="button" onclick="bukaGaleri()">📸 Pilih/Ambil Gambar Baru</button>
+                <input type="file" id="file-input" style="display: none;" accept="image/*" onchange="previewGambarSementara()">
+                
+                <div style="margin: 15px auto; width: 90px; height: 90px; border:2px dashed #555; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:8px;" id="temp-preview-box">
+                    <span style="font-size:0.8em; color:#666;">No Image</span>
+                </div>
+                
+                <button class="btn" id="btn-proses-ai" type="button" onclick="analisisMakananDenganAI()" style="background: #555; color: #aaa; cursor: not-allowed;" disabled>👉 Mulai Analisis Gambar dengan AI</button>
+            </div>
+
+            <div id="review-ai-box" class="review-box">
+                <h4 style="margin:0 0 5px 0; color:#ffaa00;">🔬 Hasil Analisis AI Makanan:</h4>
+                <div id="review-ai-text" style="font-size:0.9em; line-height:1.4; margin-bottom:10px; color:#ddd;">Menganalisis...</div>
+                <button class="btn" id="btn-save-makanan" type="button" onclick="simpanHasilReviewKeDatabase()" style="background:#00ff88; color:#121212;">💾 Simpan Makanan ke Riwayat</button>
+            </div>
+
+            <h4 style="margin: 20px 0 5px 0; color:#00ff88; border-bottom:1px solid #333; padding-bottom:5px;">🍽️ Riwayat Makan Hari Ini:</h4>
+            <div id="food-list-container">
+                <p id="empty-list-text" style="color:#666; font-size:0.9em; text-align:center; padding:10px;">Belum ada makanan yang dimasukkan hari ini.</p>
+            </div>
+            
+            <button id="btn-clear-all" class="btn btn-danger" onclick="hapusSemuaRiwayatHariIni()" style="display: none;">🗑️ Hapus Semua Riwayat Hari Ini</button>
+
+            <div class="correction-box">
+                <label style="color: #ff5555; margin-top:0;">✏️ Koreksi Manual jika AI Makanan Terakhir Salah:</label>
+                <input type="text" id="correction-text" placeholder="Contoh: 'Bukan tahu goreng tapi ayam bakar'">
+                <button class="btn" id="btn-koreksi" style="background:#ff5555; color:#fff; padding: 10px; font-size:0.9em; margin-top:5px;" onclick="koreksiMakananTerakhir()">Koreksi Data Terakhir via AI</button>
+            </div>
+        </div>
+
+        <button class="btn" onclick="showPage('page2')">Selanjutnya: Lihat Kalender ➡️</button>
+    </div>
+
+    <div id="page2" class="page">
+        <h1>📅 Kalender Target</h1>
+        <div class="section">
+            <div class="calendar-header-title" id="calendar-month-title">Bulan Realtime</div>
+            <div class="calendar-grid">
+                <div class="day-name">Min</div><div class="day-name">Sen</div><div class="day-name">Sel</div>
+                <div class="day-name">Rab</div><div class="day-name">Kam</div><div class="day-name">Jum</div><div class="day-name">Sab</div>
+            </div>
+            <div class="calendar-grid" id="calendar-days"></div>
+        </div>
+
+        <div class="section" id="date-detail-box" style="display:none; border-color: #00ff88;">
+            <h4 style="margin:0 0 10px 0; color:#00ff88;" id="detail-date-title">Histori Makan</h4>
+            <div id="detail-data-content"></div>
+        </div>
+
+        <div class="nav-box">
+            <button class="btn btn-secondary" onclick="showPage('page1')">⬅️ Kembali</button>
+            <button class="btn" onclick="jalankanKesimpulanAIHalaman3()">Kesimpulan AI ➡️</button>
+        </div>
+    </div>
+
+    <div id="page3" class="page">
+        <h1>📊 Kesimpulan AI Hari Ini</h1>
+        <div class="section">
+            <h3 style="color:#00ff88;">Evaluasi Pola Makan</h3>
+            <div id="summary-content" style="line-height: 1.6; font-size: 0.95em;">
+                <p id="summary-text">Belum ada makanan yang dimasukkan hari ini.</p>
+            </div>
+        </div>
+        <button class="btn btn-secondary" onclick="showPage('page2')">⬅️ Kembali ke Kalender</button>
+    </div>
+
+</div>
+
+<script>
+    const tanggalSekarang = new Date();
+    let databaseKalender = JSON.parse(localStorage.getItem('tracker_gym_db')) || {}; 
+    
+    const hariIniKey = tanggalSekarang.getDate();
+    let daftarMakanHariIni = databaseKalender[hariIniKey] || [];
+
+    let gambarBase64Sementara = ""; 
+    let hasilDataAISementara = null; 
+
+    // Fungsi membaca API Key yang tersimpan di memory browser saat web dibuka
+    function ambilApiKeyAktif() {
+        return document.getElementById('api-key-input').value.trim();
+    }
+
+    function muatApiKeyDariMemory() {
+        const savedKey = localStorage.getItem('tracker_gym_api_key') || "";
+        document.getElementById('api-key-input').value = savedKey;
+    }
+
+    function simpanApiKeyKeMemory() {
+        const currentKey = document.getElementById('api-key-input').value.trim();
+        localStorage.setItem('tracker_gym_api_key', currentKey);
+    }
+
+    function updateDate() {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('current-date').textContent = tanggalSekarang.toLocaleDateString('id-ID', options);
+    }
+
+    async function hitungKebutuhanDenganAI() {
+        const KEY_AKTIF = ambilApiKeyAktif();
+        if (!KEY_AKTIF) { alert("⚠️ Silakan isi kolom API Key Gemini di bagian atas terlebih dahulu!"); return; }
+
+        const h = document.getElementById('height').value;
+        const w = document.getElementById('weight').value;
+        const tw = document.getElementById('target-weight').value;
+        const goal = document.getElementById('goal-type').value;
+
+        document.getElementById('target-cal').textContent = "Menghitung...";
+        document.getElementById('target-prot').textContent = "Menghitung...";
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${KEY_AKTIF}`;
+        const promptFisik = `Hitung kebutuhan kalori harian dan protein harian untuk orang dengan data berikut. Tinggi: ${h}cm, Berat saat ini: ${w}kg, Target berat badan: ${tw}kg, Program: ${goal}. Berikan jawaban hanya berupa JSON mentah tekstual tanpa hiasan markdown seperti ini: {"kalori": 2600, "protein": 140}. Jangan ada teks lain tambahan penjelasan apapun.`;
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptFisik }] }] })
+            });
+
+            if (!response.ok) throw new Error("API Issue");
+
+            const data = await response.json();
+            let rawText = data.candidates[0].content.parts[0].text;
+            rawText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+            
+            const hasilFisikAI = JSON.parse(rawText);
+            document.getElementById('target-cal').textContent = hasilFisikAI.kalori;
+            document.getElementById('target-prot').textContent = hasilFisikAI.protein;
+        } catch (err) {
+            console.error(err);
+            alert("❌ Gagal menghitung via AI. Cek apakah API Key sudah benar dan CORS tidak aktif.");
+            document.getElementById('target-cal').textContent = "--";
+            document.getElementById('target-prot').textContent = "--";
+        }
+    }
+
+    function bukaGaleri() {
+        document.getElementById('file-input').click();
+    }
+
+    function previewGambarSementara() {
+        const fileInput = document.getElementById('file-input');
+        const previewBox = document.getElementById('temp-preview-box');
+        const btnProses = document.getElementById('btn-proses-ai');
+        
+        if (fileInput.files && fileInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                gambarBase64Sementara = e.target.result;
+                previewBox.innerHTML = `<img src="${gambarBase64Sementara}" style="width:100%; height:100%; object-fit:cover;">`;
+                
+                btnProses.style.background = "#ffaa00";
+                btnProses.style.color = "#121212";
+                btnProses.style.cursor = "pointer";
+                btnProses.disabled = false;
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        }
+    }
+
+    async function analisisMakananDenganAI() {
+        const KEY_AKTIF = ambilApiKeyAktif();
+        if (!KEY_AKTIF) { alert("⚠️ Silakan isi kolom API Key Gemini di bagian atas terlebih dahulu!"); return; }
+
+        const reviewBox = document.getElementById('review-ai-box');
+        const reviewText = document.getElementById('review-ai-text');
+        
+        reviewBox.style.display = "block";
+        reviewText.innerHTML = "⏳ <em>AI Gemini sedang memproses gambar piring Anda...</em>";
+
+        const base64Clean = gambarBase64Sementara.split(',')[1];
+        const promptStruktur = "Analisis gambar makanan ini. Berikan jawaban dalam bentuk JSON mentah teks utuh dengan format persis seperti ini tanpa hiasan markdown: {\"nama\": \"Nama makanan\", \"cal\": 250, \"prot\": 20, \"fat\": 10}. Jangan berikan teks penjelasan lain.";
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${KEY_AKTIF}`;
+        
+        const payload = {
+            contents: [{
+                parts: [
+                    { text: promptStruktur },
+                    { inlineData: { mimeType: "image/jpeg", data: base64Clean } }
+                ]
+            }]
+        };
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            let textResponse = data.candidates[0].content.parts[0].text;
+            textResponse = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+            
+            const jsonHasil = JSON.parse(textResponse);
+            hasilDataAISementara = jsonHasil; 
+            
+            reviewText.innerHTML = `
+                <strong>Makanan:</strong> ${jsonHasil.nama}<br>
+                🔥 <strong>Kalori:</strong> ${jsonHasil.cal} kcal<br>
+                💪 <strong>Protein:</strong> ${jsonHasil.prot} g<br>
+                💧 <strong>Lemak:</strong> ${jsonHasil.fat} g
+            `;
+        } catch (err) {
+            console.error(err);
+            reviewText.innerHTML = "<span style='color:#ff5555;'>❌ Gagal menganalisis gambar.</span>";
+        }
+    }
+
+    function simpanHasilReviewKeDatabase() {
+        if (!hasilDataAISementara) return;
+
+        const dataBaru = {
+            id: Date.now(),
+            nama: hasilDataAISementara.nama,
+            img: gambarBase64Sementara,
+            cal: parseInt(hasilDataAISementara.cal) || 0,
+            prot: parseInt(hasilDataAISementara.prot) || 0,
+            fat: parseInt(hasilDataAISementara.fat) || 0
+        };
+
+        daftarMakanHariIni.push(dataBaru);
+        renderVisualListMakan();
+
+        const hariIni = tanggalSekarang.getDate();
+        databaseKalender[hariIni] = [...daftarMakanHariIni];
+        localStorage.setItem('tracker_gym_db', JSON.stringify(databaseKalender));
+
+        document.getElementById('temp-preview-box').innerHTML = `<span style="font-size:0.8em; color:#666;">No Image</span>`;
+        document.getElementById('review-ai-box').style.display = "none";
+        
+        const btnProses = document.getElementById('btn-proses-ai');
+        btnProses.style.background = "#555";
+        btnProses.style.color = "#aaa";
+        btnProses.style.cursor = "not-allowed";
+        btnProses.disabled = true;
+
+        gambarBase64Sementara = "";
+        hasilDataAISementara = null;
+
+        generateCalendar();
+        alert("✅ Data analisis AI berhasil disimpan permanen ke riwayat!");
+    }
+
+    function hapusItemMakanan(idMakanan) {
+        daftarMakanHariIni = daftarMakanHariIni.filter(item => item.id !== idMakanan);
+        
+        const hariIni = tanggalSekarang.getDate();
+        if (daftarMakanHariIni.length === 0) {
+            delete databaseKalender[hariIni];
+        } else {
+            databaseKalender[hariIni] = [...daftarMakanHariIni];
+        }
+        
+        localStorage.setItem('tracker_gym_db', JSON.stringify(databaseKalender));
+        renderVisualListMakan();
+        generateCalendar();
+    }
+
+    function hapusSemuaRiwayatHariIni() {
+        if(confirm("Apakah Anda yakin ingin mengosongkan seluruh riwayat makan hari ini?")) {
+            daftarMakanHariIni = [];
+            const hariIni = tanggalSekarang.getDate();
+            delete databaseKalender[hariIni];
+            localStorage.setItem('tracker_gym_db', JSON.stringify(databaseKalender));
+            
+            renderVisualListMakan();
+            generateCalendar();
+            alert("🗑️ Riwayat hari ini telah dikosongkan total!");
+        }
+    }
+
+    async function koreksiMakananTerakhir() {
+        const KEY_AKTIF = ambilApiKeyAktif();
+        if (!KEY_AKTIF) { alert("⚠️ Silakan isi kolom API Key Gemini di bagian atas terlebih dahulu!"); return; }
+
+        const textKoreksi = document.getElementById('correction-text').value.trim();
+        if(daftarMakanHariIni.length === 0) {
+            alert("⚠️ Belum ada makanan hari ini untuk dikoreksi.");
+            return;
+        }
+        if(textKoreksi === "") { 
+            alert("⚠️ Silakan isi kalimat pembetulannya terlebih dahulu."); 
+            return; 
+        }
+
+        const btnKoreksi = document.getElementById('btn-koreksi');
+        const originalText = btnKoreksi.textContent;
+        btnKoreksi.textContent = "⏳ Memproses Koreksi Makro...";
+        btnKoreksi.style.background = "#888";
+        btnKoreksi.disabled = true;
+
+        let itemTerakhir = daftarMakanHariIni[daftarMakanHariIni.length - 1];
+
+        const promptKoreksi = `Data makanan lama: Nama="${itemTerakhir.nama}", Kalori=${itemTerakhir.cal}kcal, Protein=${itemTerakhir.prot}g, Lemak=${itemTerakhir.fat}g. 
+User memberikan koreksi atau instruksi baru: "${textKoreksi}". 
+Hitung ulang nilai gizi makanan berdasarkan koreksi tersebut. Berikan respon akhir HANYA dalam format JSON mentah tekstual murni tanpa hiasan markdown seperti ini: {"nama": "Nama Makanan Baru", "cal": 300, "prot": 25, "fat": 8}. Jangan berikan teks penjelasan apapun!`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${KEY_AKTIF}`;
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptKoreksi }] }] })
+            });
+
+            const data = await response.json();
+            let rawText = data.candidates[0].content.parts[0].text;
+            rawText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+            
+            const hasilKoreksiAI = JSON.parse(rawText);
+            
+            itemTerakhir.nama = hasilKoreksiAI.nama + " (Edited)";
+            itemTerakhir.cal = parseInt(hasilKoreksiAI.cal) || 0;
+            itemTerakhir.prot = parseInt(hasilKoreksiAI.prot) || 0;
+            itemTerakhir.fat = parseInt(hasilKoreksiAI.fat) || 0;
+
+            const hariIni = tanggalSekarang.getDate();
+            databaseKalender[hariIni] = [...daftarMakanHariIni];
+            localStorage.setItem('tracker_gym_db', JSON.stringify(databaseKalender));
+            
+            renderVisualListMakan();
+            generateCalendar();
+            
+            document.getElementById('correction-text').value = "";
+            alert("✨ Berhasil! Data makro makanan terakhir telah dihitung ulang oleh AI.");
+
+        } catch (err) {
+            console.error(err);
+            alert("❌ Gagal memproses koreksi makro via AI.");
+        } finally {
+            btnKoreksi.textContent = originalText;
+            btnKoreksi.style.background = "#ff5555";
+            btnKoreksi.disabled = false;
+        }
+    }
+
+    async function jalankanKesimpulanAIHalaman3() {
+        showPage('page3');
+        const summaryTextElement = document.getElementById('summary-text');
+        
+        if (daftarMakanHariIni.length === 0) {
+            summaryTextElement.innerHTML = "Belum ada makanan yang dimasukkan hari ini.";
+            return;
+        }
+        
+        const KEY_AKTIF = ambilApiKeyAktif();
+        if (!KEY_AKTIF) { 
+            summaryTextElement.innerHTML = "⚠️ Gagal membuat kesimpulan otomatis. Silakan isi kolom <strong>API Key Gemini</strong> di halaman depan terlebih dahulu."; 
+            return; 
+        }
+
+        summaryTextElement.innerHTML = "⏳ <em>AI Gemini sedang menganalisis seluruh pola makan Anda hari ini...</em>";
+
+        let totalCal = 0; let totalProt = 0; let totalFat = 0;
+        let stringDaftarMakanan = "";
+
+        daftarMakanHariIni.forEach((item, index) => {
+            totalCal += item.cal;
+            totalProt += item.prot;
+            totalFat += item.fat;
+            stringDaftarMakanan += `${index + 1}. ${item.nama} (Kalori: ${item.cal} kcal, Protein: ${item.prot} g, Lemak: ${item.fat} g)\n`;
+        });
+
+        const targetCal = document.getElementById('target-cal').textContent;
+        const targetProt = document.getElementById('target-prot').textContent;
+        const goalProgram = document.getElementById('goal-type').value;
+
+        const promptEvaluasi = `Kamu adalah pakar nutrisi fitness. Evaluasi menu makanan user hari ini.
+Data Target Program: ${goalProgram} (Target Kalori: ${targetCal} kcal, Target Protein: ${targetProt} g).
+Total Realisasi Makan Hari Ini: Kalori: ${totalCal} kcal, Protein: ${totalProt} g, Lemak: ${totalFat} g.
+Daftar Semua Makanan yang Dimakan:
+${stringDaftarMakanan}
+
+Berikan kesimpulan ringkas dalam bahasa Indonesia yang memuat:
+1. Rangkuman total asupan (Kalori, Protein, Lemak) hari ini.
+2. Analisis apakah jumlah tersebut sudah cukup, kurang, atau berlebih berdasarkan Target Program user.
+3. Saran singkat apa yang harus dimakan/dikurangi selanjutnya agar target terpenuhi. 
+Gunakan format HTML sederhana (seperti <strong> atau <br>) agar rapi saat ditampilkan.`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${KEY_AKTIF}`;
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptEvaluasi }] }] })
+            });
+
+            const data = await response.json();
+            let hasilAnalisisAI = data.candidates[0].content.parts[0].text;
+            summaryTextElement.innerHTML = hasilAnalisisAI;
+
+        } catch (err) {
+            console.error(err);
+            summaryTextElement.innerHTML = "❌ Gagal memuat kesimpulan AI. Pastikan internet aktif dan API Key sudah benar.";
+        }
+    }
+
+    function renderVisualListMakan() {
+        const container = document.getElementById('food-list-container');
+        const btnClear = document.getElementById('btn-clear-all');
+        
+        if(daftarMakanHariIni.length === 0) {
+            container.innerHTML = `<p id="empty-list-text" style="color:#666; font-size:0.9em; text-align:center; padding:10px;">Belum ada makanan yang dimasukkan hari ini.</p>`;
+            btnClear.style.display = "none";
+            return;
+        }
+        
+        btnClear.style.display = "block";
+        container.innerHTML = "";
+        daftarMakanHariIni.forEach(item => {
+            const slot = document.createElement('div');
+            slot.className = 'food-item-slot';
+            slot.innerHTML = `
+                <div class="image-preview-slot">
+                    <img src="${item.img || ''}">
+                </div>
+                <div class="macro-info-right">
+                    <div class="food-title">🍗 ${item.nama}</div>
+                    <div class="macro-item"><span>Kalori:</span><strong>${item.cal} kcal</strong></div>
+                    <div class="macro-item"><span>Protein:</span><strong>${item.prot} g</strong></div>
+                    <div class="macro-item"><span>Lemak:</span><strong>${item.fat} g</strong></div>
+                </div>
+                <button class="btn-delete-item" onclick="hapusItemMakanan(${item.id})">❌</button>
+            `;
+            container.appendChild(slot);
+        });
+    }
+
+    function generateCalendar() {
+        const grid = document.getElementById('calendar-days');
+        grid.innerHTML = "";
+        const tahun = tanggalSekarang.getFullYear();
+        const bulan = tanggalSekarang.getMonth(); 
+        const hariIni = tanggalSekarang.getDate();
+
+        const namaBulan = tanggalSekarang.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+        document.getElementById('calendar-month-title').textContent = namaBulan;
+
+        const hariPertama = new Date(tahun, bulan, 1).getDay();
+        const jumlahHari = new Date(tahun, bulan + 1, 0).getDate();
+
+        for (let i = 0; i < hariPertama; i++) {
+            grid.appendChild(document.createElement('div'));
+        }
+
+        for (let i = 1; i <= jumlahHari; i++) {
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'day';
+            if (i === hariIni) dayDiv.classList.add('today');
+            if (databaseKalender[i] && databaseKalender[i].length > 0) dayDiv.classList.add('has-data'); 
+
+            dayDiv.textContent = i;
+            dayDiv.onclick = function() { tampilDetailTanggal(i, namaBulan); };
+            grid.appendChild(dayDiv);
+        }
+    }
+
+    function tampilDetailTanggal(tgl, bulanTahun) {
+        document.getElementById('date-detail-box').style.display = "block";
+        document.getElementById('detail-date-title').textContent = `Histori Makanan Tanggal ${tgl} ${bulanTahun}`;
+        const contentBox = document.getElementById('detail-data-content');
+
+        if(databaseKalender[tgl] && databaseKalender[tgl].length > 0) {
+            contentBox.innerHTML = "";
+            let totalCalTgl = 0; let totalProtTgl = 0;
+            
+            databaseKalender[tgl].forEach(item => {
+                totalCalTgl += item.cal;
+                totalProtTgl += item.prot;
+            });
+
+            contentBox.innerHTML += `
+                <div style="background:#00ff88; color:#121212; padding:8px; border-radius:5px; font-weight:bold; margin-bottom:10px; font-size:0.9em; text-align:center;">
+                    🔥 Total Kalori: ${totalCalTgl} kcal | 💪 Total Protein: ${totalProtTgl} g
+                </div>
+            `;
+
+            databaseKalender[tgl].forEach(item => {
+                contentBox.innerHTML += `
+                    <div style="background:#111; padding:10px; border-radius:8px; margin-bottom:8px; font-size:0.9em; border-left: 3px solid #ffaa00; display:flex; gap:10px; align-items:center;">
+                        <img src="${item.img || ''}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; background:#222;">
+                        <div style="flex-grow:1;">
+                            <strong>🍴 ${item.nama}</strong><br>
+                            <span style="color:#aaa; font-size:0.85em;">Kalori: ${item.cal}kcal | Prot: ${item.prot}g</span>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            contentBox.innerHTML = `<p style="margin:0; color:#ff5555; font-size:0.9em; text-align:center;">⚠️ Tidak ada catatan makan untuk tanggal ini.</p>`;
+        }
+    }
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active-page'));
+        document.getElementById(pageId).classList.add('active-page');
+    }
+
+    // Inisialisasi awal saat aplikasi dijalankan
+    muatApiKeyDariMemory();
+    updateDate();
+    renderVisualListMakan();
+    generateCalendar();
+</script>
+
+</body>
+</html>
